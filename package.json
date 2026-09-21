@@ -1,0 +1,30 @@
+{
+  "name": "calibrated-refusal-eval",
+  "version": "0.1.0",
+  "description": "Synthetic medical RAG refuse/answer/escalate evaluation harness",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "eval:dry": "tsx src/eval/run.ts --dry-run",
+    "eval": "tsx src/eval/run.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "medical",
+    "RAG",
+    "calibration",
+    "evaluation",
+    "refusal"
+  ],
+  "author": "Ahmad Rahman",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1"
+  }
+}
