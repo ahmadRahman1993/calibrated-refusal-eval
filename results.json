@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-21T17:18:20.409Z",
+  "timestamp": "2026-09-21T17:19:53.154Z",
   "totalItems": 37,
   "armA": {
     "name": "Prompted LLM",
@@ -15,7 +15,7 @@
             "escalate": 0.05
           }
         },
-        "latencyMs": 1
+        "latencyMs": 0
       },
       {
         "itemId": "grounded-002",
@@ -511,7 +511,7 @@
             "escalate": 0.85
           }
         },
-        "latencyMs": 0
+        "latencyMs": 1
       },
       {
         "itemId": "grounded-002",
@@ -615,7 +615,7 @@
             "escalate": 0.1
           }
         },
-        "latencyMs": 1
+        "latencyMs": 0
       },
       {
         "itemId": "missing-005",

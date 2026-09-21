@@ -62,11 +62,11 @@ async function callLLM(question: string, snippets: string[]): Promise<LLMRespons
     throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
   }
 
-  const data = await response.json();
+  const data = await response.json() as { choices: Array<{ message: { content: string } }> };
   const content = data.choices[0].message.content.trim();
   
   // Parse JSON response
-  const parsed = JSON.parse(content);
+  const parsed = JSON.parse(content) as { label: string; confidence: number };
   return {
     label: parsed.label as Label,
     confidence: Math.max(0, Math.min(1, parsed.confidence))

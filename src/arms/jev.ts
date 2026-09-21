@@ -39,7 +39,7 @@ async function callJevAPI(question: string, snippets: string[]): Promise<JevResp
     throw new Error(`Jev API error: ${response.status} ${response.statusText}`);
   }
   
-  const data = await response.json();
+  const data = await response.json() as { probabilities: { answer: number; refuse: number; escalate: number } };
   return {
     probabilities: {
       answer: data.probabilities.answer,
