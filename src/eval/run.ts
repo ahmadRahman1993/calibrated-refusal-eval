@@ -60,22 +60,33 @@ async function main() {
   console.log(`ECE difference: ${(armBMetrics.expectedCalibrationError - armAMetrics.expectedCalibrationError).toFixed(4)} (B - A)`);
   console.log(`Brier difference: ${(armBMetrics.brierScore - armAMetrics.brierScore).toFixed(4)} (B - A)`);
   
-  const wilcoxonP = computeWilcoxon(armAResults, armBResults);
-  const spearmanRho = computeSpearman(armAResults, armBResults);
+  const wilcoxonResult = await computeWilcoxon(seedData, armAResults, armBResults);
+  const spearmanAResult = await computeSpearman(seedData, armAResults);
+  const spearmanBResult = await computeSpearman(seedData, armBResults);
   
-  console.log(`\nWilcoxon p-value: ${wilcoxonP !== undefined ? wilcoxonP.toFixed(4) : 'not computed (needs reliability-eval integration)'}`);
-  console.log(`Spearman ρ: ${spearmanRho !== undefined ? spearmanRho.toFixed(4) : 'not computed (needs reliability-eval integration)'}`);
+  console.log(`\nWilcoxon signed-rank test (A vs B):`);
+  if (wilcoxonResult) {
+    console.log(`  p-value: ${wilcoxonResult.pValue.toFixed(4)}`);
+    console.log(`  significant (α=0.05): ${wilcoxonResult.significant ? 'Yes' : 'No'}`);
+    console.log(`  effect size: ${wilcoxonResult.effectSize.toFixed(4)}`);
+  } else {
+    console.log(`  not computed (insufficient data)`);
+  }
+  
+  console.log(`\nSpearman ρ (confidence ↔ correctness):`);
+  console.log(`  Arm A: ${spearmanAResult ? `ρ=${spearmanAResult.rho.toFixed(4)}, p=${spearmanAResult.pValue.toFixed(4)}` : 'not computed'}`);
+  console.log(`  Arm B: ${spearmanBResult ? `ρ=${spearmanBResult.rho.toFixed(4)}, p=${spearmanBResult.pValue.toFixed(4)}` : 'not computed'}`);
   
   // Notes
   const notes: string[] = [];
   if (dryRun) {
     notes.push('Dry-run mode: predictions are deterministic heuristics, not real API calls');
   }
-  if (wilcoxonP === undefined) {
-    notes.push('Wilcoxon test requires reliability-eval integration (github.com/ahmadRahman1993/reliability-eval)');
+  if (!wilcoxonResult) {
+    notes.push('Wilcoxon test requires at least 2 paired observations');
   }
-  if (spearmanRho === undefined) {
-    notes.push('Spearman correlation requires reliability-eval integration');
+  if (!spearmanAResult && !spearmanBResult) {
+    notes.push('Spearman correlation requires confidence values and at least 2 observations');
   }
   
   if (notes.length > 0) {
@@ -98,8 +109,19 @@ async function main() {
       metrics: armBMetrics
     },
     comparison: {
-      wilcoxonP,
-      spearmanRho,
+      wilcoxonP: wilcoxonResult?.pValue,
+      wilcoxonSignificant: wilcoxonResult?.significant,
+      wilcoxonEffectSize: wilcoxonResult?.effectSize,
+      spearmanArmA: spearmanAResult ? {
+        rho: spearmanAResult.rho,
+        pValue: spearmanAResult.pValue,
+        significant: spearmanAResult.significant
+      } : undefined,
+      spearmanArmB: spearmanBResult ? {
+        rho: spearmanBResult.rho,
+        pValue: spearmanBResult.pValue,
+        significant: spearmanBResult.significant
+      } : undefined,
       notes
     }
   };
