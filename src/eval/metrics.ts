@@ -93,21 +93,148 @@ export function computeMetrics(items: EvalItem[], results: ArmResult[]): Metrics
 }
 
 /**
- * Compute Wilcoxon signed-rank test p-value (stub - note reliability-eval)
+ * Compute Wilcoxon signed-rank test comparing accuracy between arms.
+ * Uses reliability-eval for validated statistical comparison.
  */
-export function computeWilcoxon(itemsA: ArmResult[], itemsB: ArmResult[]): number | undefined {
-  // Stub: would integrate reliability-eval or external library
-  // For now, return undefined to indicate not computed
-  return undefined;
+export async function computeWilcoxon(
+  items: EvalItem[],
+  armAResults: ArmResult[],
+  armBResults: ArmResult[]
+): Promise<{ pValue: number; significant: boolean; statistic: number; effectSize: number } | undefined> {
+  try {
+    const { compare } = await import('reliability-eval');
+    
+    const itemMap = new Map(items.map(item => [item.id, item]));
+    
+    const pairs: Array<{ id: string; scoreA: number; scoreB: number }> = [];
+    
+    for (let i = 0; i < armAResults.length; i++) {
+      const resultA = armAResults[i];
+      const resultB = armBResults[i];
+      
+      if (!resultA || !resultB || resultA.error || resultB.error) continue;
+      if (resultA.itemId !== resultB.itemId) continue;
+      
+      const item = itemMap.get(resultA.itemId);
+      if (!item) continue;
+      
+      const scoreA = resultA.prediction.label === item.groundTruth ? 1 : 0;
+      const scoreB = resultB.prediction.label === item.groundTruth ? 1 : 0;
+      
+      pairs.push({ id: resultA.itemId, scoreA, scoreB });
+    }
+    
+    if (pairs.length < 2) return undefined;
+    
+    const mockResultA = {
+      items: pairs.map(p => ({
+        id: p.id,
+        input: '',
+        expected: '',
+        predicted: '',
+        confidence: null,
+        correct: p.scoreA === 1,
+        score: p.scoreA,
+        raw: null
+      })),
+      metrics: { accuracy: 0, ece: 0, brier: null, n: pairs.length },
+      calibrationCurve: [],
+      meta: { provider: 'A', model: 'A', startedAt: '', finishedAt: '', durationMs: 0 }
+    };
+    
+    const mockResultB = {
+      items: pairs.map(p => ({
+        id: p.id,
+        input: '',
+        expected: '',
+        predicted: '',
+        confidence: null,
+        correct: p.scoreB === 1,
+        score: p.scoreB,
+        raw: null
+      })),
+      metrics: { accuracy: 0, ece: 0, brier: null, n: pairs.length },
+      calibrationCurve: [],
+      meta: { provider: 'B', model: 'B', startedAt: '', finishedAt: '', durationMs: 0 }
+    };
+    
+    const result = compare(mockResultA, mockResultB, { test: 'wilcoxon', metric: 'score' });
+    
+    return {
+      pValue: result.pValue,
+      significant: result.significant,
+      statistic: result.statistic,
+      effectSize: result.effectSize
+    };
+  } catch (error) {
+    console.warn('Wilcoxon test failed:', error);
+    return undefined;
+  }
 }
 
 /**
- * Compute Spearman rank correlation (stub - note reliability-eval)
+ * Compute Spearman rank correlation between confidence and correctness.
+ * Uses reliability-eval for validated statistical analysis.
  */
-export function computeSpearman(itemsA: ArmResult[], itemsB: ArmResult[]): number | undefined {
-  // Stub: would integrate reliability-eval or external library
-  // For now, return undefined to indicate not computed
-  return undefined;
+export async function computeSpearman(
+  items: EvalItem[],
+  results: ArmResult[]
+): Promise<{ rho: number; pValue: number; significant: boolean } | undefined> {
+  try {
+    const { correlate } = await import('reliability-eval');
+    
+    const itemMap = new Map(items.map(item => [item.id, item]));
+    
+    const validItems: Array<{ id: string; confidence: number; correct: boolean }> = [];
+    
+    for (const result of results) {
+      if (result.error || result.prediction.confidence === undefined) continue;
+      
+      const item = itemMap.get(result.itemId);
+      if (!item) continue;
+      
+      const correct = result.prediction.label === item.groundTruth;
+      
+      validItems.push({
+        id: result.itemId,
+        confidence: result.prediction.confidence,
+        correct
+      });
+    }
+    
+    if (validItems.length < 2) return undefined;
+    
+    const mockResult = {
+      items: validItems.map(v => ({
+        id: v.id,
+        input: '',
+        expected: '',
+        predicted: '',
+        confidence: v.confidence,
+        correct: v.correct,
+        score: v.correct ? 1 : 0,
+        raw: null
+      })),
+      metrics: { accuracy: 0, ece: 0, brier: null, n: validItems.length },
+      calibrationCurve: [],
+      meta: { provider: '', model: '', startedAt: '', finishedAt: '', durationMs: 0 }
+    };
+    
+    const result = correlate(mockResult, { 
+      test: 'spearman', 
+      x: 'confidence', 
+      y: 'correct' 
+    });
+    
+    return {
+      rho: result.rho,
+      pValue: result.pValue,
+      significant: result.significant
+    };
+  } catch (error) {
+    console.warn('Spearman test failed:', error);
+    return undefined;
+  }
 }
 
 /**

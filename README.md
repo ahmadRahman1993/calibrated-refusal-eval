@@ -46,15 +46,30 @@ This uses ~40 synthetic medical Q+A scenarios covering:
 Copy `.env.example` to `.env` and configure:
 
 ```bash
-# Optional: OpenAI API key for live LLM predictions
+# LLM Provider: "openai" or "gemini"
+LLM_PROVIDER=openai
+
+# OpenAI configuration (optional - dry-run works without API keys)
 OPENAI_API_KEY=sk-...
-LLM_MODEL=gpt-4
+OPENAI_MODEL=gpt-4
+
+# Gemini configuration (alternative to OpenAI)
+GEMINI_API_KEY=...
+GEMINI_MODEL=gemini-1.5-pro
+
+# LLM temperature (applies to both providers)
 LLM_TEMPERATURE=0.0
 
-# Optional: Jev-style API (stub works without)
+# Jev-style API (optional - stub works without key)
 JEV_API_KEY=
 JEV_ENDPOINT=
 ```
+
+**Supported LLM Providers:**
+- **OpenAI**: GPT-4, GPT-4 Turbo, or any OpenAI chat completion model
+- **Gemini**: Gemini 1.5 Pro, Gemini 1.5 Flash, or other Gemini models
+
+Set `LLM_PROVIDER=openai` or `LLM_PROVIDER=gemini` to choose your provider.
 
 ## Running Live Evaluation
 
@@ -72,8 +87,17 @@ The harness computes:
 - **ECE** (Expected Calibration Error): Deviation between confidence and actual accuracy
 - **Brier Score**: Mean squared error of probability predictions
 - **Per-label accuracy**: Performance breakdown by answer/refuse/escalate
-- **Wilcoxon signed-rank test**: Statistical comparison between arms (pending `reliability-eval` integration)
-- **Spearman ρ**: Confidence correlation between arms (pending integration)
+- **Wilcoxon signed-rank test**: Statistical comparison between arms A and B (powered by `reliability-eval`)
+- **Spearman ρ**: Confidence-correctness correlation for each arm (powered by `reliability-eval`)
+
+### Statistical Tests via reliability-eval
+
+This project uses [`reliability-eval`](https://github.com/ahmadRahman1993/reliability-eval) for rigorous statistical comparison:
+
+- **Wilcoxon signed-rank test**: Paired non-parametric test comparing Arm A vs Arm B accuracy on the same evaluation items. Reports p-value, significance (α=0.05), and effect size.
+- **Spearman rank correlation**: Measures whether higher confidence correlates with higher correctness. Positive ρ indicates confidence is a useful signal for routing decisions.
+
+Both tests are validated against scipy.stats reference implementations.
 
 ## Project Structure
 
@@ -112,24 +136,50 @@ Each evaluation item in `src/data/seed.json`:
 
 ## Integration Notes
 
-### reliability-eval
+### reliability-eval ✅ Integrated
 
-Statistical comparison (Wilcoxon, Spearman) currently stubs out. To integrate:
+Statistical tests (Wilcoxon signed-rank, Spearman rank correlation) are now fully integrated via [`reliability-eval`](https://github.com/ahmadRahman1993/reliability-eval).
 
-```bash
-# Add reliability-eval dependency
-npm install reliability-eval  # (when available)
-```
+The library is included in `package.json` and used in `src/eval/metrics.ts` to compute:
+- Paired statistical comparison between Arm A and Arm B
+- Confidence-correctness correlation for each arm
 
-Then wire into `src/eval/metrics.ts`.
+No additional setup required — works in both dry-run and live modes.
 
 ### Jev-style API
 
-Arm B uses a stub. To integrate a real Jev API:
+Arm B uses a heuristic stub for demonstration. To integrate a real Jev API:
 
+**Expected API Contract (TypeSafe Jev):**
+
+Request:
+```json
+POST {JEV_ENDPOINT}
+Authorization: Bearer {JEV_API_KEY}
+Content-Type: application/json
+
+{
+  "question": "Should I stop taking my medication?",
+  "context": ["Evidence snippet 1", "Evidence snippet 2"],
+  "choices": ["answer", "refuse", "escalate"]
+}
+```
+
+Response:
+```json
+{
+  "probabilities": {
+    "answer": 0.15,
+    "refuse": 0.20,
+    "escalate": 0.65
+  }
+}
+```
+
+**Integration steps:**
 1. Set `JEV_API_KEY` and `JEV_ENDPOINT` in `.env`
-2. Update `callJevAPI()` in `src/arms/jev.ts` with actual API contract
-3. Run with `npm run eval`
+2. The `callJevAPI()` function in `src/arms/jev.ts` is ready — just provide a live endpoint
+3. Run with `npm run eval` (set `useStub: false` in `src/eval/run.ts` line 53)
 
 ## Privacy & Scope
 
@@ -145,15 +195,25 @@ MIT - See LICENSE file
 
 Ahmad Rahman
 
+## Article
+
+See **[ARTICLE.md](ARTICLE.md)** for a comprehensive write-up:
+
+**"Refusal Needs Calibration, Not Vibes: Measuring Confidence in Medical AI Triage Decisions"**
+
+The article covers:
+- Why calibration matters more than accuracy for medical AI
+- Detailed methodology and evaluation design
+- Metrics explanation (ECE, Brier, Wilcoxon, Spearman)
+- Results interpretation (with placeholders for live API runs)
+- Limitations and next steps
+
 ## Contributing
 
 Issues and PRs welcome. Focus areas:
 
 - Additional synthetic evaluation scenarios
-- Integration with `reliability-eval` for statistical tests
-- Jev-style API connector implementations
-- Calibration visualization tools
-
----
-
-**Article angle**: "Refusal needs calibration, not vibes" — measuring how well medical AI systems know when they don't know.
+- Live Jev-style API integrations
+- Calibration visualization tools (reliability diagrams, bin plots)
+- Multi-turn conversation scenarios
+- Retrieval quality evaluation

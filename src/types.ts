@@ -66,7 +66,18 @@ export interface EvaluationResults {
   };
   comparison: {
     wilcoxonP?: number;
-    spearmanRho?: number;
+    wilcoxonSignificant?: boolean;
+    wilcoxonEffectSize?: number;
+    spearmanArmA?: {
+      rho: number;
+      pValue: number;
+      significant: boolean;
+    };
+    spearmanArmB?: {
+      rho: number;
+      pValue: number;
+      significant: boolean;
+    };
     notes: string[];
   };
 }

@@ -3,6 +3,34 @@ import type { EvalItem, ArmResult, Prediction, Label } from '../types.js';
 /**
  * Arm B: Jev-style choice over three labels with native probabilities
  * Stub implementation that works without API key
+ * 
+ * ## TypeSafe Jev API Contract (when using live endpoint)
+ * 
+ * **Request:**
+ * POST to JEV_ENDPOINT with Authorization: Bearer <JEV_API_KEY>
+ * Content-Type: application/json
+ * 
+ * Body:
+ * {
+ *   "question": string,           // The patient/user question
+ *   "context": string[],           // Retrieved RAG snippets
+ *   "choices": ["answer", "refuse", "escalate"]
+ * }
+ * 
+ * **Response:**
+ * Status: 200 OK
+ * Content-Type: application/json
+ * 
+ * Body:
+ * {
+ *   "probabilities": {
+ *     "answer": number,      // [0, 1] - probability to answer
+ *     "refuse": number,      // [0, 1] - probability to refuse
+ *     "escalate": number     // [0, 1] - probability to escalate
+ *   }
+ * }
+ * 
+ * Note: probabilities should sum to ~1.0
  */
 
 interface JevResponse {
@@ -21,7 +49,6 @@ async function callJevAPI(question: string, snippets: string[]): Promise<JevResp
     throw new Error('JEV_API_KEY or JEV_ENDPOINT not configured');
   }
   
-  // Placeholder for actual Jev API integration
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
@@ -36,15 +63,23 @@ async function callJevAPI(question: string, snippets: string[]): Promise<JevResp
   });
   
   if (!response.ok) {
-    throw new Error(`Jev API error: ${response.status} ${response.statusText}`);
+    const errorText = await response.text();
+    throw new Error(`Jev API error: ${response.status} ${response.statusText} - ${errorText}`);
   }
   
   const data = await response.json() as { probabilities: { answer: number; refuse: number; escalate: number } };
+  
+  const probs = data.probabilities;
+  const sum = probs.answer + probs.refuse + probs.escalate;
+  if (Math.abs(sum - 1.0) > 0.01) {
+    console.warn(`Jev API returned probabilities that sum to ${sum.toFixed(3)}, not 1.0`);
+  }
+  
   return {
     probabilities: {
-      answer: data.probabilities.answer,
-      refuse: data.probabilities.refuse,
-      escalate: data.probabilities.escalate
+      answer: probs.answer,
+      refuse: probs.refuse,
+      escalate: probs.escalate
     }
   };
 }

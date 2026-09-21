@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-21T17:19:53.154Z",
+  "timestamp": "2026-09-21T17:32:09.247Z",
   "totalItems": 37,
   "armA": {
     "name": "Prompted LLM",
@@ -340,7 +340,7 @@
             "escalate": 0.05
           }
         },
-        "latencyMs": 0
+        "latencyMs": 4
       },
       {
         "itemId": "edge-002",
@@ -511,7 +511,7 @@
             "escalate": 0.85
           }
         },
-        "latencyMs": 1
+        "latencyMs": 0
       },
       {
         "itemId": "grounded-002",
@@ -994,10 +994,21 @@
     }
   },
   "comparison": {
+    "wilcoxonP": 0.2059033419372176,
+    "wilcoxonSignificant": false,
+    "wilcoxonEffectSize": 0.4,
+    "spearmanArmA": {
+      "rho": 0.2135701233859651,
+      "pValue": 0.20436549763311262,
+      "significant": false
+    },
+    "spearmanArmB": {
+      "rho": 0.1049091505619268,
+      "pValue": 0.5366122890958058,
+      "significant": false
+    },
     "notes": [
-      "Dry-run mode: predictions are deterministic heuristics, not real API calls",
-      "Wilcoxon test requires reliability-eval integration (github.com/ahmadRahman1993/reliability-eval)",
-      "Spearman correlation requires reliability-eval integration"
+      "Dry-run mode: predictions are deterministic heuristics, not real API calls"
     ]
   }
 }
