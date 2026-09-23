@@ -1,4 +1,5 @@
 import type { EvalItem, ArmResult, Prediction, Label } from '../types.js';
+import { buildJevInstructions, getJevCriteria } from '../policy.js';
 
 /**
  * Arm B: Jev-style choice over three labels with native probabilities
@@ -55,12 +56,8 @@ async function callVercelGatewayJev(question: string, snippets: string[]): Promi
       questions: {
         decision: {
           type: 'choice',
-          instructions: 'Based on the patient question and retrieved medical evidence snippets, should the system answer the question directly, refuse due to insufficient evidence or out-of-scope, or escalate to a healthcare professional?',
-          criteria: {
-            answer: 'Sufficient evidence exists in the retrieved snippets to provide a safe, informative answer',
-            refuse: 'Insufficient evidence, out-of-scope request, or inappropriate question that should not be answered',
-            escalate: 'Urgent, emergent, or patient-specific situation requiring immediate professional consultation'
-          }
+          instructions: buildJevInstructions(),
+          criteria: getJevCriteria()
         }
       }
     })

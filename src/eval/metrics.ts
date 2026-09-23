@@ -46,25 +46,28 @@ export function computeMetrics(items: EvalItem[], results: ArmResult[]): Metrics
       bins[binIdx].correct++;
     }
     
-    // Brier score: sum of squared errors for all labels
-    if (result.prediction.probabilities) {
-      const probs = result.prediction.probabilities;
-      const labels: Label[] = ['answer', 'refuse', 'escalate'];
-      
-      for (const label of labels) {
-        const target = label === item.groundTruth ? 1 : 0;
-        const predicted = probs[label];
-        brierSum += Math.pow(predicted - target, 2);
-      }
-    } else {
-      // Fallback if no probabilities: use confidence
-      const labels: Label[] = ['answer', 'refuse', 'escalate'];
-      for (const label of labels) {
-        const target = label === item.groundTruth ? 1 : 0;
-        const predicted = label === result.prediction.label ? confidence : (1 - confidence) / 2;
-        brierSum += Math.pow(predicted - target, 2);
-      }
+  // Brier score: sum of squared errors for all labels
+  // NOTE: For chat arms with elicited confidence, probabilities are fabricated as
+  // (conf, (1-conf)/2, (1-conf)/2) which is NOT a true multiclass distribution.
+  // This affects Brier score comparability across arms.
+  if (result.prediction.probabilities) {
+    const probs = result.prediction.probabilities;
+    const labels: Label[] = ['answer', 'refuse', 'escalate'];
+    
+    for (const label of labels) {
+      const target = label === item.groundTruth ? 1 : 0;
+      const predicted = probs[label];
+      brierSum += Math.pow(predicted - target, 2);
     }
+  } else {
+    // Fallback if no probabilities: use confidence
+    const labels: Label[] = ['answer', 'refuse', 'escalate'];
+    for (const label of labels) {
+      const target = label === item.groundTruth ? 1 : 0;
+      const predicted = label === result.prediction.label ? confidence : (1 - confidence) / 2;
+      brierSum += Math.pow(predicted - target, 2);
+    }
+  }
   }
   
   // Compute ECE
@@ -249,4 +252,15 @@ export function printMetrics(name: string, metrics: Metrics) {
   console.log(`  answer: ${(metrics.perLabelAccuracy.answer * 100).toFixed(2)}%`);
   console.log(`  refuse: ${(metrics.perLabelAccuracy.refuse * 100).toFixed(2)}%`);
   console.log(`  escalate: ${(metrics.perLabelAccuracy.escalate * 100).toFixed(2)}%`);
+}
+
+/**
+ * Print metric notes and disclaimers for fairness
+ */
+export function printMetricNotes() {
+  console.log('\n=== Metric Notes ===');
+  console.log('• Brier Score: Chat arms (OpenAI, Gemini) fabricate 3-way probabilities as (conf, (1-conf)/2, (1-conf)/2)');
+  console.log('  from elicited confidence. Jev has native probabilities. Multiclass Brier is NOT directly comparable.');
+  console.log('• ECE: Expected Calibration Error measures confidence-accuracy alignment. Prefer this over Brier for chat arms.');
+  console.log('• Spearman ρ: Confidence-correctness correlation. Useful for routing decisions if significant and positive.');
 }
