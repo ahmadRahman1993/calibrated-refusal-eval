@@ -5,7 +5,7 @@ import * as dotenv from 'dotenv';
 import type { EvalItem, EvaluationResults, ArmResult, PairwiseComparison } from '../types.js';
 import { runLLMArm } from '../arms/llm.js';
 import { runJevArm } from '../arms/jev.js';
-import { computeMetrics, computeWilcoxon, computeSpearman, printMetrics } from './metrics.js';
+import { computeMetrics, computeWilcoxon, computeSpearman, printMetrics, printMetricNotes } from './metrics.js';
 
 // Load environment variables
 dotenv.config();
@@ -172,12 +172,16 @@ async function main() {
   if (dryRun) {
     notes.push('Dry-run mode: predictions are deterministic heuristics, not real API calls');
   }
+  notes.push('Multiclass Brier Score for chat arms (OpenAI, Gemini) uses fabricated probabilities from elicited confidence and is not directly comparable to Jev native probabilities');
   if (Object.keys(spearmanResults).length === 0) {
     notes.push('Spearman correlation requires confidence values and at least 2 observations');
   }
   if (pairwiseComparisons.every(c => c.wilcoxonP === undefined)) {
     notes.push('Wilcoxon test requires at least 2 paired observations');
   }
+  
+  // Print metric fairness notes
+  printMetricNotes();
   
   if (notes.length > 0) {
     console.log('\nNotes:');
