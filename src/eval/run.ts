@@ -50,9 +50,9 @@ async function main() {
   
   // Run Arm B (Jev-style native probabilities)
   console.log('\nRunning Arm B: Jev-style native probabilities...');
-  const armBResults = await runJevArm(seedData, true); // Always use stub for now
+  const armBResults = await runJevArm(seedData, dryRun);
   const armBMetrics = computeMetrics(seedData, armBResults);
-  printMetrics('Arm B: Jev-style (stub)', armBMetrics);
+  printMetrics('Arm B: Jev-style native probabilities', armBMetrics);
   
   // Comparison
   console.log('\n=== Comparison ===');
