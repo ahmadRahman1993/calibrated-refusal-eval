@@ -2,21 +2,24 @@
 
 **A controlled evaluation of answer/refuse/escalate decision-making in medical RAG systems**
 
+## Two Chat Models vs One Decision Model
+
 ---
 
 ## Abstract
 
 When medical information systems retrieve context to answer patient questions, they face a three-way decision: **answer** with available evidence, **refuse** when evidence is insufficient, or **escalate** to immediate professional care. Most systems make this choice through heuristic rules or vibe-based prompting, never measuring whether their confidence matches reality.
 
-This article presents a synthetic evaluation harness comparing two approaches to medical RAG triage: prompted LLMs with elicited confidence (Arm A) versus native probability distributions over discrete choices (Arm B, "Jev-style"). Using 37 synthetic medical scenarios, we measure not just accuracy, but **calibration** — does the system know when it doesn't know?
+This article presents a synthetic evaluation harness comparing three approaches to medical RAG triage: **OpenAI** GPT-4 with elicited confidence, **Gemini** 1.5 with elicited confidence (same prompt protocol), and **Jev** with native probability distributions over discrete choices. Using 37 synthetic medical scenarios, we measure not just accuracy, but **calibration** — does the system know when it doesn't know?
 
-Key findings:
-- Arm A achieves **[TBD]%** accuracy with ECE of **[TBD]**
-- Arm B achieves **[TBD]%** accuracy with ECE of **[TBD]**
-- Wilcoxon signed-rank test: p = **[TBD]**, effect size = **[TBD]**
-- Spearman ρ (confidence ↔ correctness): Arm A = **[TBD]**, Arm B = **[TBD]**
+Key findings (3-way comparison):
+- OpenAI accuracy: **[TBD]%**, ECE: **[TBD]**
+- Gemini accuracy: **[TBD]%**, ECE: **[TBD]**
+- Jev accuracy: **[TBD]%**, ECE: **[TBD]**
+- Pairwise Wilcoxon tests (OpenAI vs Gemini, OpenAI vs Jev, Gemini vs Jev): **[TBD]**
+- Spearman ρ (confidence ↔ correctness): OpenAI **[TBD]**, Gemini **[TBD]**, Jev **[TBD]**
 
-**Bottom line:** Calibrated refusal isn't a nice-to-have — it's table stakes for any medical AI that claims to know its limits.
+**Bottom line:** Calibrated refusal isn't a nice-to-have — it's table stakes for any medical AI that claims to know its limits. This eval shows how two frontier chat models (OpenAI GPT-4, Google Gemini 1.5) compare against each other and against a decision-specific model (Jev) across calibration metrics.
 
 ---
 
@@ -83,17 +86,21 @@ We built a 37-item synthetic medical RAG evaluation set covering:
 
 **Data quality:** All scenarios are synthetic, contain no real patient information (PHI), and were designed to stress-test the answer/refuse/escalate boundary. This is an educational and research project, not affiliated with any healthcare organization or employer.
 
-### 2.2 Arm A: Prompted LLM with Elicited Confidence
+### 2.2 Three Arms: Two Chat Models vs One Decision Model
 
-Arm A uses a frontier LLM (configurable: OpenAI GPT-4 or Google Gemini 1.5 Pro) with a structured system prompt defining the three labels and decision criteria. The prompt explicitly requests a JSON response:
+This evaluation runs three arms in a single pass, enabling pairwise comparisons across all three approaches:
+
+#### OpenAI Arm: GPT-4 with Elicited Confidence
+
+Uses OpenAI GPT-4 (or configured model) with a structured system prompt defining the three labels and decision criteria. The prompt explicitly requests a JSON response:
 
 ```json
 {"label": "answer"|"refuse"|"escalate", "confidence": 0.0-1.0}
 ```
 
 **Strengths:**
+- Industry-standard frontier model
 - Easy to implement (one API call)
-- Confidence is elicited through explicit prompting
 - Flexible: works with any instruction-tuned LLM
 
 **Weaknesses:**
@@ -101,9 +108,22 @@ Arm A uses a frontier LLM (configurable: OpenAI GPT-4 or Google Gemini 1.5 Pro) 
 - Confidence isn't grounded in a formal probability distribution
 - No explicit modeling of label uncertainty
 
-### 2.3 Arm B: Jev-Style Native Probabilities
+#### Gemini Arm: Gemini 1.5 with Elicited Confidence
 
-Arm B uses a "Jev-style" approach: instead of free-form generation with elicited confidence, the model outputs a **native probability distribution** over the three choices.
+Uses Google Gemini 1.5 (or configured model) with **the same system prompt and request format as OpenAI**. This ensures fair comparison: both chat models receive identical instructions and output the same JSON structure.
+
+**Strengths:**
+- Second frontier chat model for comparison
+- Same prompt protocol as OpenAI (apples-to-apples)
+- Alternative architecture/training may show different calibration properties
+
+**Weaknesses:**
+- Same as OpenAI: elicited confidence may be poorly calibrated
+- No formal probability distribution
+
+#### Jev Arm: Native Probabilities via Decision Model
+
+Uses a "Jev-style" approach: instead of free-form generation with elicited confidence, the model outputs a **native probability distribution** over the three choices.
 
 Request to API:
 ```json
@@ -131,69 +151,90 @@ The predicted label is the argmax of the probability distribution; confidence is
 - Probabilities sum to 1.0 (proper distribution)
 - Confidence is grounded in the model's uncertainty over discrete choices
 - Calibration can be directly measured and improved (e.g., via Platt scaling, temperature tuning)
+- Decision-specific model (not a general-purpose chat model)
 
 **Weaknesses:**
 - Requires API support for probability distributions over constrained outputs
 - More complex to implement if rolling your own
 - Still requires validation that native probabilities correlate with accuracy
 
-**Note:** In this evaluation, Arm B uses a heuristic stub for demonstration (no live API). The stub analyzes question keywords and evidence quality to output synthetic probabilities. Real Jev-style integration would use a calibrated choice model or API (e.g., TypeSafe Jev, constrained decoding with logprobs, etc.).
+**Note:** In dry-run mode, all three arms use heuristic stubs for demonstration (no live API). Real integration uses Vercel AI Gateway for Jev (`typesafe-ai/jev` model).
 
 ---
 
 ## 3. Metrics: Beyond Accuracy
 
-We report six metrics for each arm:
+We report six metrics for each of the three arms:
 
 ### 3.1 Accuracy
 Standard classification accuracy: fraction of correct label predictions.
 
-- Arm A: **[TBD]%**
-- Arm B: **[TBD]%**
+- OpenAI: **[TBD]%**
+- Gemini: **[TBD]%**
+- Jev: **[TBD]%**
 
 ### 3.2 Expected Calibration Error (ECE)
 Measures how well confidence matches actual accuracy. We bin predictions by confidence (10 bins), compute per-bin accuracy, and average the absolute difference between bin confidence and bin accuracy, weighted by bin size.
 
-- Arm A ECE: **[TBD]**
-- Arm B ECE: **[TBD]**
+- OpenAI ECE: **[TBD]**
+- Gemini ECE: **[TBD]**
+- Jev ECE: **[TBD]**
 
 Lower is better. ECE < 0.05 is well-calibrated; ECE > 0.15 is poorly calibrated.
 
 ### 3.3 Brier Score
 Mean squared error of predicted probabilities against true outcomes (0/1 per label). Rewards both accuracy and calibration.
 
-- Arm A Brier: **[TBD]**
-- Arm B Brier: **[TBD]**
+- OpenAI Brier: **[TBD]**
+- Gemini Brier: **[TBD]**
+- Jev Brier: **[TBD]**
 
 Lower is better. Brier ∈ [0, 3] for 3-class; 0 is perfect.
 
 ### 3.4 Per-Label Accuracy
 Breakdown by answer/refuse/escalate to identify systematic biases.
 
-**Arm A:**
+**OpenAI:**
 - Answer: **[TBD]%**
 - Refuse: **[TBD]%**
 - Escalate: **[TBD]%**
 
-**Arm B:**
+**Gemini:**
 - Answer: **[TBD]%**
 - Refuse: **[TBD]%**
 - Escalate: **[TBD]%**
 
-### 3.5 Wilcoxon Signed-Rank Test
-Paired non-parametric significance test comparing Arm A vs Arm B accuracy on the same items. Reports p-value and effect size.
+**Jev:**
+- Answer: **[TBD]%**
+- Refuse: **[TBD]%**
+- Escalate: **[TBD]%**
 
-- **p-value:** **[TBD]**
-- **Significant (α = 0.05):** **[TBD]**
-- **Effect size:** **[TBD]**
+### 3.5 Pairwise Wilcoxon Signed-Rank Tests
+Paired non-parametric significance tests comparing every pair of arms on the same items. Reports p-value and effect size for each pair.
+
+**OpenAI vs Gemini:**
+- p-value: **[TBD]**
+- Significant (α = 0.05): **[TBD]**
+- Effect size: **[TBD]**
+
+**OpenAI vs Jev:**
+- p-value: **[TBD]**
+- Significant (α = 0.05): **[TBD]**
+- Effect size: **[TBD]**
+
+**Gemini vs Jev:**
+- p-value: **[TBD]**
+- Significant (α = 0.05): **[TBD]**
+- Effect size: **[TBD]**
 
 Powered by [`reliability-eval`](https://github.com/ahmadRahman1993/reliability-eval), validated against scipy.stats.
 
 ### 3.6 Spearman Rank Correlation (Confidence ↔ Correctness)
 Measures whether higher confidence correlates with higher accuracy. Spearman ρ ∈ [-1, 1]; positive ρ means confidence is a useful signal.
 
-- **Arm A:** ρ = **[TBD]**, p = **[TBD]**
-- **Arm B:** ρ = **[TBD]**, p = **[TBD]**
+- **OpenAI:** ρ = **[TBD]**, p = **[TBD]**
+- **Gemini:** ρ = **[TBD]**, p = **[TBD]**
+- **Jev:** ρ = **[TBD]**, p = **[TBD]**
 
 If ρ is low or non-significant, confidence is unreliable for routing decisions.
 
@@ -209,18 +250,29 @@ Placeholder structure:
 
 From `npm run eval:dry` (using heuristic stubs, no live API calls):
 
-- **Arm A Accuracy:** 81.08%
-- **Arm A ECE:** 0.0689
-- **Arm B Accuracy:** 70.27%
-- **Arm B ECE:** 0.1338
-- **Wilcoxon p-value:** 0.2059 (not significant)
-- **Spearman Arm A:** ρ = 0.2136, p = 0.2044
-- **Spearman Arm B:** ρ = 0.1049, p = 0.5366
+**Accuracy:**
+- OpenAI (stub): **[TBD]%**
+- Gemini (stub): **[TBD]%**
+- Jev (stub): **[TBD]%**
+
+**ECE:**
+- OpenAI: **[TBD]**
+- Gemini: **[TBD]**
+- Jev: **[TBD]**
+
+**Pairwise Wilcoxon (dry-run stubs):**
+- OpenAI vs Gemini: p = **[TBD]**, significant = **[TBD]**
+- OpenAI vs Jev: p = **[TBD]**, significant = **[TBD]**
+- Gemini vs Jev: p = **[TBD]**, significant = **[TBD]**
+
+**Spearman ρ (dry-run stubs):**
+- OpenAI: ρ = **[TBD]**, p = **[TBD]**
+- Gemini: ρ = **[TBD]**, p = **[TBD]**
+- Jev: ρ = **[TBD]**, p = **[TBD]**
 
 **Interpretation (dry-run):**
-- Arm A (prompted LLM stub) is more accurate but both arms show weak confidence-correctness correlation
-- Neither arm's confidence is a strong predictor of correctness in dry-run mode
-- This is expected: heuristic stubs aren't designed to be well-calibrated
+- Dry-run stubs use deterministic heuristics and are not designed to be well-calibrated
+- Real results require live API calls with actual model predictions
 
 ### 4.2 Live Results (Real API Calls)
 
@@ -228,17 +280,19 @@ From `npm run eval:dry` (using heuristic stubs, no live API calls):
 
 Run with:
 ```bash
-# Configure .env with API keys
+# Configure .env with API keys (set any 2 or all 3)
 cp .env.example .env
-# Edit .env: set OPENAI_API_KEY or GEMINI_API_KEY
+# Edit .env: set OPENAI_API_KEY, GEMINI_API_KEY, and/or AI_GATEWAY_API_KEY
 
 npm run eval
 ```
 
 Expected observations:
-- Does Arm A (elicited confidence) or Arm B (native probs) achieve better calibration?
-- Is the Spearman ρ significant for either arm?
-- Does Wilcoxon show a significant accuracy difference?
+- Which arm (OpenAI, Gemini, or Jev) achieves better calibration?
+- Is the Spearman ρ significant for any arm? (i.e., is confidence useful for routing?)
+- Do pairwise Wilcoxon tests show significant accuracy differences?
+- Do the two chat models (OpenAI vs Gemini) perform similarly, or does one dominate?
+- Does the decision model (Jev) outperform general-purpose chat models on calibration?
 
 ---
 
@@ -322,13 +376,14 @@ Publish expanded evaluation sets and calibration measurement tools for the medic
 Medical AI systems that don't measure calibration are guessing about their own reliability. This evaluation harness demonstrates that:
 
 1. **Calibration is measurable** using standard metrics (ECE, Brier, Spearman ρ)
-2. **Statistical comparison is rigorous** via Wilcoxon signed-rank test (not vibes)
-3. **Native probability distributions (Arm B) offer a path to better calibration** than elicited confidence (Arm A) — but must be validated
-4. **Refusal needs calibration, not vibes**
+2. **Statistical comparison is rigorous** via pairwise Wilcoxon signed-rank tests (not vibes)
+3. **3-way evaluation** (two chat models vs one decision model) reveals whether general-purpose LLMs or decision-specific models achieve better calibration
+4. **Native probability distributions (Jev) offer a path to better calibration** than elicited confidence (OpenAI, Gemini) — but must be validated
+5. **Refusal needs calibration, not vibes**
 
 If your medical AI confidently refuses when it should answer, or confidently answers when it should escalate, you're not measuring calibration.
 
-**Measure it. Improve it. Repeat.**
+**Measure it. Compare it. Improve it. Repeat.**
 
 ---
 
@@ -354,8 +409,9 @@ Outputs deterministic predictions using heuristic stubs.
 
 ```bash
 cp .env.example .env
-# Edit .env: set OPENAI_API_KEY or GEMINI_API_KEY
-# Optionally set JEV_API_KEY and JEV_ENDPOINT for Arm B
+# Edit .env: set any 2 or all 3 API keys:
+#   OPENAI_API_KEY, GEMINI_API_KEY, AI_GATEWAY_API_KEY
+# Optionally set JEV_API_KEY and JEV_ENDPOINT for Jev arm (legacy)
 
 npm run eval
 ```

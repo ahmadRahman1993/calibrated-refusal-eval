@@ -126,9 +126,7 @@ async function callGemini(question: string, snippets: string[]): Promise<LLMResp
   };
 }
 
-async function callLLM(question: string, snippets: string[]): Promise<LLMResponse> {
-  const provider = process.env.LLM_PROVIDER || 'openai';
-  
+async function callLLM(question: string, snippets: string[], provider: 'openai' | 'gemini'): Promise<LLMResponse> {
   if (provider === 'gemini') {
     return callGemini(question, snippets);
   } else if (provider === 'openai') {
@@ -244,7 +242,7 @@ function dryRunPredict(item: EvalItem): Prediction {
   };
 }
 
-export async function runLLMArm(items: EvalItem[], dryRun: boolean = false): Promise<ArmResult[]> {
+export async function runLLMArm(items: EvalItem[], dryRun: boolean = false, provider: 'openai' | 'gemini' = 'openai'): Promise<ArmResult[]> {
   const results: ArmResult[] = [];
   
   for (const item of items) {
@@ -256,7 +254,7 @@ export async function runLLMArm(items: EvalItem[], dryRun: boolean = false): Pro
       if (dryRun) {
         prediction = dryRunPredict(item);
       } else {
-        const response = await callLLM(item.question, item.retrievedSnippets);
+        const response = await callLLM(item.question, item.retrievedSnippets, provider);
         prediction = {
           label: response.label,
           confidence: response.confidence,

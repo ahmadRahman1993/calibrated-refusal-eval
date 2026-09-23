@@ -49,35 +49,37 @@ export interface Metrics {
 }
 
 /**
+ * Named arm result with metrics
+ */
+export interface NamedArmResults {
+  name: string;
+  results: ArmResult[];
+  metrics: Metrics;
+}
+
+/**
+ * Pairwise comparison between two arms
+ */
+export interface PairwiseComparison {
+  armA: string;
+  armB: string;
+  wilcoxonP?: number;
+  wilcoxonSignificant?: boolean;
+  wilcoxonEffectSize?: number;
+}
+
+/**
  * Complete evaluation results comparing arms.
  */
 export interface EvaluationResults {
   timestamp: string;
   totalItems: number;
-  armA: {
-    name: string;
-    results: ArmResult[];
-    metrics: Metrics;
-  };
-  armB: {
-    name: string;
-    results: ArmResult[];
-    metrics: Metrics;
-  };
-  comparison: {
-    wilcoxonP?: number;
-    wilcoxonSignificant?: boolean;
-    wilcoxonEffectSize?: number;
-    spearmanArmA?: {
-      rho: number;
-      pValue: number;
-      significant: boolean;
-    };
-    spearmanArmB?: {
-      rho: number;
-      pValue: number;
-      significant: boolean;
-    };
-    notes: string[];
-  };
+  arms: Record<string, NamedArmResults>;
+  spearman: Record<string, {
+    rho: number;
+    pValue: number;
+    significant: boolean;
+  }>;
+  pairwiseComparisons: PairwiseComparison[];
+  notes: string[];
 }
