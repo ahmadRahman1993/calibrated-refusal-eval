@@ -60,7 +60,10 @@ GEMINI_MODEL=gemini-1.5-pro
 # LLM temperature (applies to both providers)
 LLM_TEMPERATURE=0.0
 
-# Jev-style API (optional - stub works without key)
+# Vercel AI Gateway (preferred for Arm B - no TypeSafe waitlist)
+AI_GATEWAY_API_KEY=
+
+# Legacy Jev endpoint (optional fallback)
 JEV_API_KEY=
 JEV_ENDPOINT=
 ```
@@ -71,11 +74,34 @@ JEV_ENDPOINT=
 
 Set `LLM_PROVIDER=openai` or `LLM_PROVIDER=gemini` to choose your provider.
 
+**Jev Integration Options:**
+- **Vercel AI Gateway** (recommended): Set `AI_GATEWAY_API_KEY` - no TypeSafe waitlist required
+- **Legacy endpoint**: Set `JEV_API_KEY` + `JEV_ENDPOINT` if you have a custom TypeSafe endpoint
+- **Stub mode**: Works without any Jev keys (uses heuristic predictions)
+
 ## Running Live Evaluation
 
-With API keys configured:
+### With Vercel AI Gateway (Recommended)
+
+1. Get your API key from [Vercel AI Gateway](https://vercel.com/docs/ai-gateway/getting-started/evaluation)
+2. Add to `.env`:
+   ```bash
+   AI_GATEWAY_API_KEY=your_key_here
+   ```
+3. Run live evaluation:
+   ```bash
+   npm run eval
+   ```
+
+Arm B will now call real Jev via Vercel AI Gateway using the `typesafe-ai/jev` model with native probability distributions.
+
+### With Legacy TypeSafe Endpoint (Optional)
+
+If you have a custom TypeSafe endpoint from the waitlist:
 
 ```bash
+JEV_API_KEY=your_key
+JEV_ENDPOINT=your_endpoint
 npm run eval
 ```
 
@@ -146,40 +172,22 @@ The library is included in `package.json` and used in `src/eval/metrics.ts` to c
 
 No additional setup required — works in both dry-run and live modes.
 
-### Jev-style API
+### Jev Integration
 
-Arm B uses a heuristic stub for demonstration. To integrate a real Jev API:
+**Arm B** now supports real Jev evaluation via **Vercel AI Gateway** (no TypeSafe waitlist required).
 
-**Expected API Contract (TypeSafe Jev):**
+**How it works:**
+1. Calls `https://ai-gateway.vercel.sh/v1/evaluate` with model `typesafe-ai/jev`
+2. Uses `choice` question type over three labels: `answer`, `refuse`, `escalate`
+3. Receives calibrated probabilities for each label
+4. Automatically selects the label with highest probability
 
-Request:
-```json
-POST {JEV_ENDPOINT}
-Authorization: Bearer {JEV_API_KEY}
-Content-Type: application/json
+**Fallback modes:**
+- If `AI_GATEWAY_API_KEY` is set → live Gateway call
+- Else if `JEV_API_KEY` + `JEV_ENDPOINT` are set → legacy endpoint
+- Else → heuristic stub (dry-run mode)
 
-{
-  "question": "Should I stop taking my medication?",
-  "context": ["Evidence snippet 1", "Evidence snippet 2"],
-  "choices": ["answer", "refuse", "escalate"]
-}
-```
-
-Response:
-```json
-{
-  "probabilities": {
-    "answer": 0.15,
-    "refuse": 0.20,
-    "escalate": 0.65
-  }
-}
-```
-
-**Integration steps:**
-1. Set `JEV_API_KEY` and `JEV_ENDPOINT` in `.env`
-2. The `callJevAPI()` function in `src/arms/jev.ts` is ready — just provide a live endpoint
-3. Run with `npm run eval` (set `useStub: false` in `src/eval/run.ts` line 53)
+The stub uses deterministic heuristics for testing without API keys. See `src/arms/jev.ts` for implementation details.
 
 ## Privacy & Scope
 
