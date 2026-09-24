@@ -274,15 +274,6 @@ MIT - See LICENSE file
 ## Author
 
 Ahmad Rahman  
-Personal OSS project (not affiliated with any employer or healthcare organization)
-
----
-
-## Article
-
-See **[ARTICLE.md](ARTICLE.md)** for a detailed write-up suitable for LinkedIn sharing:
-
-**"Refusal Needs Calibration, Not Vibes: Measuring Confidence in Medical AI Triage Decisions"**
 
 ---
 
